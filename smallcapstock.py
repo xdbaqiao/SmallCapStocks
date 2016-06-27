@@ -5,6 +5,10 @@ from __future__ import division
 
 from selector import select
 from trader import trader
+from download import download
+from common import get_stock_prefix
+
+SRC = 'http://qt.gtimg.cn/q=%s'
 
 class smallCapStock:
     def __init__(self, target_num=10):
@@ -18,13 +22,26 @@ class smallCapStock:
         target_stocks = sort_stocks[:self.target_num]
         return {i['code']:i for i in target_stocks}, sort_stocks[self.target_num]
 
+    def suspend(self, stocks):
+        urls = []
+        for i in stocks:
+            url = SRC % (get_stock_prefix(str(i)) + str(i))
+            html = download().get(url)
+            volume = html.split('~')[6]
+            if int(volume)== 0:
+                urls.append(str(i))
+        return urls
+
     def adjust(self):
         # 10支最小市值股票 
         target_stocks_info, target_add_stock = self.min_volume_stocks()
-        # 目标股票
-        target_stocks = target_stocks_info.keys()
         # 持仓股票
         holding_stocks = self.trader.holding.keys()
+        # 持仓停牌股票
+        suspend_stocks = self.suspend(holding_stocks)
+        # 目标股票
+        m = target_stocks_info.keys() 
+        target_stocks = m if len(suspend_stocks) == 0 else m[:len(m)-len(suspend_stocks)] + suspend_stocks
 
         # 清仓 
         clear_stocks = [i for i in holding_stocks if i not in target_stocks]
@@ -44,6 +61,8 @@ class smallCapStock:
         ''' 清仓
         '''
         for num, stock in enumerate(stocks):
+            if stock == '000803':
+                continue
             d_weight =  0 if weight == -1 else weight
             if weight == -1 and num == len(stocks)-1:
                 d_weight = 1
