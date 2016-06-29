@@ -83,5 +83,5 @@ class smallCapStock:
                 self.trader.buy(stock, int(weight))
 
 if __name__ == '__main__':
-    scs = smallCapStock()
+    scs = smallCapStock(8)
     scs.adjust()
